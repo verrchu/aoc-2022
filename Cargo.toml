@@ -1,10 +1,11 @@
 [package]
-name = "aoc"
+name = "aoc-2022"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 itertools = "0.10.5"
+text_io = "0.1.12"
 
 [[bin]]
 name = "01-p1"
@@ -13,3 +14,11 @@ path = "bin/01/p1.rs"
 [[bin]]
 name = "01-p2"
 path = "bin/01/p2.rs"
+
+[[bin]]
+name = "02-p1"
+path = "bin/02/p1.rs"
+
+[[bin]]
+name = "02-p2"
+path = "bin/02/p2.rs"
