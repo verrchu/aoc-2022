@@ -1,147 +1,111 @@
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
-
-use itertools::Itertools;
+use std::{cell::RefCell, collections::HashMap, mem::MaybeUninit, rc::Rc};
 
 static INPUT: &str = include_str!("input");
+const TARGET_SIZE: usize = 40_000_000;
 
-#[derive(Debug, Default)]
-struct DirState {
-    sub_dirs: HashSet<String>,
+#[derive(Debug)]
+struct Dir {
+    parent: Option<Rc<RefCell<Dir>>>,
+    sub_dirs: HashMap<String, Rc<RefCell<Dir>>>,
     files: HashMap<String, usize>,
+    size: MaybeUninit<usize>,
 }
 
-#[derive(Debug)]
-enum Command {
-    Ls,
-    Cd(String),
-}
+impl Dir {
+    fn new() -> Self {
+        Self {
+            parent: None,
+            sub_dirs: HashMap::new(),
+            files: HashMap::new(),
+            size: MaybeUninit::uninit(),
+        }
+    }
 
-const TARGET_SPACE: usize = 40_000_000;
+    fn calculate_size(node: Rc<RefCell<Dir>>) -> usize {
+        let mut node = node.borrow_mut();
 
-impl Command {
-    fn parse(s: &str) -> Self {
-        if s.starts_with("$ ls") {
-            return Self::Ls;
+        let mut size = 0;
+        if !node.sub_dirs.is_empty() {
+            size += node
+                .sub_dirs
+                .values()
+                .map(|sub_dir| Dir::calculate_size(sub_dir.clone()))
+                .sum::<usize>();
         }
 
-        if s.starts_with("$ cd") {
-            return Self::Cd(s.strip_prefix("$ cd ").unwrap().to_string());
+        size += node.files.values().sum::<usize>();
+
+        unsafe {
+            *(node.size.as_mut_ptr()) = size;
         }
 
-        unreachable!()
+        size
+    }
+
+    fn traverse(node: Rc<RefCell<Dir>>, f: &mut impl FnMut(usize)) {
+        let node = node.borrow();
+
+        f(unsafe { *(node.size.as_ptr()) });
+        node.sub_dirs
+            .values()
+            .for_each(|sub_dir| Dir::traverse(sub_dir.clone(), f));
     }
 }
 
-#[derive(Debug)]
-enum DirEntry {
-    SubDir(String),
-    File(String, usize),
+fn is_cd(line: &str) -> Option<&str> {
+    line.strip_prefix("$ cd ")
 }
 
-impl DirEntry {
-    fn parse(s: &str) -> Self {
-        let s = s.split(" ").collect::<Vec<_>>();
-
-        if s[0] == "dir" {
-            Self::SubDir(s[1].to_string())
-        } else {
-            Self::File(s[1].to_string(), s[0].parse().unwrap())
-        }
-    }
+fn is_file(line: &str) -> Option<(&str, usize)> {
+    (!line.starts_with("$"))
+        .then(|| line.split(" ").collect::<Vec<_>>())
+        .and_then(|parts| (parts[0] != "dir").then(|| (parts[1], parts[0].parse().unwrap())))
 }
 
 fn main() {
-    let mut tree = HashMap::<Vec<String>, DirState>::new();
-    let mut wd = Vec::<String>::new();
+    let root = Rc::new(RefCell::new(Dir::new()));
+    let mut cwd = root.clone();
 
-    for cmd in INPUT.lines() {
-        if cmd.starts_with("$") {
-            if let Command::Cd(path) = Command::parse(cmd) {
-                match path.as_str() {
-                    "/" => {
-                        wd = vec!["/".to_string()];
-                    }
-                    ".." => {
-                        wd.pop();
-                    }
-                    path => {
-                        wd.push(path.to_string());
-                    }
+    for line in INPUT.lines() {
+        if let Some(dir) = is_cd(line) {
+            match dir {
+                "/" => cwd = root.clone(),
+                ".." => {
+                    let parent = cwd.borrow().parent.clone().unwrap();
+                    cwd = parent;
                 }
+                path => {
+                    let next = {
+                        let mut node = cwd.borrow_mut();
+                        node.sub_dirs
+                            .entry(path.to_string())
+                            .or_insert(Rc::new(RefCell::new(Dir::new())));
 
-                tree.entry(wd.clone()).or_default();
-            }
-        } else {
-            let dir_state = tree.get_mut(&wd).unwrap();
-            match DirEntry::parse(cmd) {
-                DirEntry::SubDir(sub_dir) => {
-                    dir_state.sub_dirs.insert(sub_dir);
-                }
-                DirEntry::File(name, size) => {
-                    dir_state.files.insert(name, size);
+                        node.sub_dirs.get(path).unwrap().clone()
+                    };
+
+                    next.borrow_mut().parent = Some(cwd.clone());
+                    cwd = next;
                 }
             }
+        } else if let Some((name, size)) = is_file(line) {
+            cwd.borrow_mut().files.insert(name.to_string(), size);
         }
     }
 
-    let mut space = HashMap::<Vec<String>, usize>::new();
+    Dir::calculate_size(root.clone());
 
-    fn calculate_size(
-        path: Vec<String>,
-        tree: &HashMap<Vec<String>, DirState>,
-        space: &mut HashMap<Vec<String>, usize>,
-    ) -> usize {
-        let dir_state = tree.get(&path).unwrap();
-        if dir_state.sub_dirs.is_empty() {
-            let size = dir_state
-                .files
-                .iter()
-                .map(|(_name, size)| size)
-                .sum::<usize>();
+    let total_size = unsafe { *(root.borrow().size.as_ptr()) };
 
-            space.insert(path, size);
-
-            size
-        } else {
-            let sub_dir_size = dir_state
-                .sub_dirs
-                .iter()
-                .map(|sub_dir| {
-                    let mut path = path.clone();
-                    path.push(sub_dir.to_string());
-
-                    calculate_size(path, tree, space)
-                })
-                .sum::<usize>();
-
-            let file_size = dir_state
-                .files
-                .iter()
-                .map(|(_name, size)| size)
-                .sum::<usize>();
-
-            let size = sub_dir_size + file_size;
-            space.insert(path, size);
-
-            size
+    let mut candidates = vec![];
+    let threshold_size = total_size - TARGET_SIZE;
+    Dir::traverse(root, &mut |size| {
+        if size >= threshold_size {
+            candidates.push(size);
         }
-    }
+    });
 
-    let used_space = calculate_size(vec!["/".into()], &tree, &mut space);
-    let to_free = used_space - TARGET_SPACE;
+    candidates.sort();
 
-    let target_dir = space
-        .iter()
-        .sorted_by_key(|(_path, size)| *size)
-        .skip_while(|(_path, size)| **size < to_free)
-        .next()
-        .unwrap()
-        .0;
-
-    let result = space.get(target_dir).unwrap();
-
-    println!("{result}");
+    println!("{}", candidates[0]);
 }
