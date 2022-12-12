@@ -1,0 +1,48 @@
+- items: [89, 73, 66, 57, 64, 80]
+  op: !mul 3
+  test:
+    div: 13
+    t: 6
+    f: 2
+- items: [83, 78, 81, 55, 81, 59, 69]
+  op: !add 1
+  test:
+    div: 3
+    t: 7
+    f: 4
+- items: [76, 91, 58, 85]
+  op: !mul 13
+  test:
+    div: 7
+    t: 1
+    f: 4
+- items: [71, 72, 74, 76, 68]
+  op: !sqr
+  test:
+    div: 2
+    t: 6
+    f: 0
+- items: [98, 85, 84]
+  op: !add 7
+  test:
+    div: 19
+    t: 5
+    f: 7
+- items: [78]
+  op: !add 8
+  test:
+    div: 5
+    t: 3
+    f: 0
+- items: [86, 70, 60, 88, 88, 78, 74, 83]
+  op: !add 4
+  test:
+    div: 11
+    t: 1
+    f: 2
+- items: [81, 58]
+  op: !add 5
+  test:
+    div: 17
+    t: 3
+    f: 5

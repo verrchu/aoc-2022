@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 itertools = "0.10.5"
+serde = { version = "1.0.149", features = ["derive"] }
+serde_yaml = "0.9.14"
 text_io = "0.1.12"
 
 [[bin]]
@@ -86,3 +88,19 @@ path = "bin/10/p1.rs"
 [[bin]]
 name = "10-p2"
 path = "bin/10/p2.rs"
+
+[[bin]]
+name = "11-p1"
+path = "bin/11/p1.rs"
+
+[[bin]]
+name = "11-p2"
+path = "bin/11/p2.rs"
+
+[[bin]]
+name = "12-p1"
+path = "bin/12/p1.rs"
+
+[[bin]]
+name = "12-p2"
+path = "bin/12/p2.rs"
