@@ -13,8 +13,12 @@ fn main() {
                     let x = point.next().unwrap().parse::<usize>().unwrap();
                     let y = point.next().unwrap().parse::<usize>().unwrap();
 
-                    if x > max_x { max_x = x; }
-                    if y > max_y { max_y = y; }
+                    if x > max_x {
+                        max_x = x;
+                    }
+                    if y > max_y {
+                        max_y = y;
+                    }
 
                     (x, y)
                 })
@@ -32,12 +36,16 @@ fn main() {
                 let x = a.0;
                 let (y1, y2) = if a.1 > b.1 { (b.1, a.1) } else { (a.1, b.1) };
 
-                for y in y1..=y2 { grid[y][x] = '#'; }
+                for y in y1..=y2 {
+                    grid[y][x] = '#';
+                }
             } else if a.1 == b.1 {
                 let y = a.1;
                 let (x1, x2) = if a.0 > b.0 { (b.0, a.0) } else { (a.0, b.0) };
 
-                for x in x1..=x2 { grid[y][x] = '#'; }
+                for x in x1..=x2 {
+                    grid[y][x] = '#';
+                }
             } else {
                 unreachable!()
             }
@@ -49,16 +57,22 @@ fn main() {
         let (mut x, mut y) = (500, 0);
 
         loop {
-            if y == grid.len() - 1 { break 'outer; }
+            if y == grid.len() - 1 {
+                break 'outer;
+            }
 
             if grid[y + 1][x] == '.' {
                 y += 1;
             } else if grid[y + 1][x - 1] == '.' {
-                y += 1; x -= 1;
+                y += 1;
+                x -= 1;
             } else if grid[y + 1][x + 1] == '.' {
-                y += 1; x += 1;
+                y += 1;
+                x += 1;
             } else {
-                grid[y][x] = '+'; count += 1; break;
+                grid[y][x] = '+';
+                count += 1;
+                break;
             }
         }
     }

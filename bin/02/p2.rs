@@ -57,7 +57,7 @@ impl RPS {
     }
 
     fn pick_move(&self, action: Action) -> Self {
-        use {RPS::*, Action::*};
+        use {Action::*, RPS::*};
 
         match (self, action) {
             (Rock, Win) => Paper,

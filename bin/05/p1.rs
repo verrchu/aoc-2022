@@ -59,6 +59,6 @@ fn main() {
         .iter()
         .flat_map(|stack| stack.last().copied())
         .collect::<String>();
-    
+
     println!("{result}");
 }
